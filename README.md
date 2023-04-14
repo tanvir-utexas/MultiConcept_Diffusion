@@ -176,7 +176,7 @@ python sample.py --prompt "the <new2> cat sculpture in the style of a <new1> woo
 ## install requirements 
 pip install accelerate
 pip install modelcards
-pip install transformers>=4.25.1
+pip install transformers==4.27.4
 pip install deepspeed
 pip install diffusers==0.14.0
 accelerate config

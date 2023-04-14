@@ -1,0 +1,49 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    {
+    "name": "finetune_real",
+    "type": "python",
+    "request": "launch",
+    "program": "train_debug.py",
+    "console": "integratedTerminal",
+    "justMyCode": true,
+    "args": [
+    "--base",
+    "configs/custom-diffusion/finetune_addtoken.yaml",
+    "-t",
+    "--gpus",
+    "1",
+    "finetune_addtoken.yaml",
+    "--resume-from-checkpoint-custom",
+    "weights/sd-v1-4.ckpt",
+    "--caption",
+    "<new1> cat",
+    "--datapath",
+    "data/cat",
+    "--reg_datapath",
+    "real_reg/samples_cat/images.txt",
+    "--reg_caption",
+    "real_reg/samples_cat/caption.txt",
+    "--modifier_token",
+    "<new1>",
+    "--name",
+    "cat-sdv4"
+    ]
+    }
+    ]
+    }
+    
+    // --base configs/custom-diffusion/${ARRAY[4]} \
+    // -t --gpus 1 \
+    // --resume-from-checkpoint-custom ${ARRAY[5]} \
+    // --caption "<new1> ${ARRAY[0]}" \
+    // --datapath ${ARRAY[1]} \
+    // --reg_datapath "${ARRAY[2]}/images.txt" \
+    // --reg_caption "${ARRAY[2]}/caption.txt" \
+    // --modifier_token "<new1>" \
+    // --name "${ARRAY[3]}-sdv4"
+    
