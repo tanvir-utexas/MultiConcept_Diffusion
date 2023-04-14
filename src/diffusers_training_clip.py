@@ -27,6 +27,8 @@ from transformers import AutoTokenizer, PretrainedConfig
 from diffusers.models.cross_attention import CrossAttention
 from diffusers.utils.import_utils import is_xformers_available
 from diffusers.utils import check_min_version, is_wandb_available
+import torch.nn as nn
+from transformers import CLIPTokenizer, CLIPTextModel, CLIPModel, CLIPVisionModel
 
 sys.path.append('./')
 from src.diffusers_model_pipeline import CustomDiffusionAttnProcessor, CustomDiffusionPipeline, set_use_memory_efficient_attention_xformers
@@ -37,6 +39,15 @@ check_min_version("0.14.0")
 
 logger = get_logger(__name__)
 
+
+def contrastive_loss(logits: torch.Tensor) -> torch.Tensor:
+    return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
+
+
+def clip_loss(similarity: torch.Tensor) -> torch.Tensor:
+    caption_loss = contrastive_loss(similarity)
+    image_loss = contrastive_loss(similarity.t())
+    return (caption_loss + image_loss) / 2.0
 
 def create_custom_diffusion(unet, freeze_model):
     for name, params in unet.named_parameters():
@@ -70,6 +81,18 @@ def create_custom_diffusion(unet, freeze_model):
     unet.set_attn_processor(CustomDiffusionAttnProcessor())
     return unet
 
+
+# class CustomCLIP(CLIPModel):
+#     def __init__(self, text_encoder, tokenizer,  version="openai/clip-vit-large-patch14", device="cuda", max_length=77):
+#         super().__init__()
+#         self.text_model = text_encoder
+#         self.tokenizer = tokenizer
+#         self.vision_model = CLIPVisionModel.from_pretrained(version).to(text_encoder.device)
+
+#         self.max_length = max_length
+
+# def create_custom_clip_model(text_encoder, tokenizer):
+#     pass
 
 def freeze_params(params):
     for param in params:
@@ -518,6 +541,26 @@ def main(args):
     text_encoder = text_encoder_cls.from_pretrained(
         args.pretrained_model_name_or_path, subfolder="text_encoder", revision=args.revision
     )
+
+    vision_encoder_cls = CLIPVisionModel
+    vision_encoder = vision_encoder_cls.from_pretrained("openai/clip-vit-large-patch14")
+    # vision_encoder.requires_grad_(False)
+
+    clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
+    visual_projection = clip_model.visual_projection
+    text_projection = clip_model.text_projection
+    logit_scale = clip_model.logit_scale
+    params_to_freeze = itertools.chain(
+            vision_encoder.parameters(),
+            visual_projection.parameters(),
+            text_projection.parameters(),
+            text_encoder.text_model.encoder.parameters(),
+            text_encoder.text_model.final_layer_norm.parameters(),
+            text_encoder.text_model.embeddings.position_embedding.parameters(),
+        )
+    freeze_params(params_to_freeze)
+    logit_scale.requires_grad_(False)
+
     vae = AutoencoderKL.from_pretrained(args.pretrained_model_name_or_path, subfolder="vae", revision=args.revision)
     unet = UNet2DConditionModel.from_pretrained(
         args.pretrained_model_name_or_path, subfolder="unet", revision=args.revision
@@ -622,12 +665,12 @@ def main(args):
             token_embeds[x] = token_embeds[y]
 
         # Freeze all parameters except for the token embeddings in text encoder
-        params_to_freeze = itertools.chain(
-            text_encoder.text_model.encoder.parameters(),
-            text_encoder.text_model.final_layer_norm.parameters(),
-            text_encoder.text_model.embeddings.position_embedding.parameters(),
-        )
-        freeze_params(params_to_freeze)
+        # params_to_freeze = itertools.chain(
+        #     text_encoder.text_model.encoder.parameters(),
+        #     text_encoder.text_model.final_layer_norm.parameters(),
+        #     text_encoder.text_model.embeddings.position_embedding.parameters(),
+        # )
+        # freeze_params(params_to_freeze)
 
         if args.freeze_model == 'crossattn':
             params_to_optimize = itertools.chain( text_encoder.get_input_embeddings().parameters() , [x[1] for x in unet.named_parameters() if 'attn2' in x[0]] )
@@ -639,11 +682,11 @@ def main(args):
     else:
         if args.freeze_model == 'crossattn':
             params_to_optimize = (
-                itertools.chain([x[1] for x in unet.named_parameters() if 'attn2' in x[0]], text_encoder.parameters() if args.train_text_encoder else [] ) 
+                itertools.chain([x[1] for x in unet.named_parameters() if 'attn2' in x[0]], text_encoder.parameters() if args.train_text_encoder else [] )
             )
         else:
             params_to_optimize = (
-                itertools.chain([x[1] for x in unet.named_parameters() if ('attn2.to_k' in x[0] or 'attn2.to_v' in x[0])], text_encoder.parameters() if args.train_text_encoder else [] ) 
+                itertools.chain([x[1] for x in unet.named_parameters() if ('attn2.to_k' in x[0] or 'attn2.to_v' in x[0])], text_encoder.parameters() if args.train_text_encoder else [] )
             )
 
     optimizer = optimizer_class(
@@ -664,9 +707,9 @@ def main(args):
     )
 
     train_dataloader = torch.utils.data.DataLoader(
-        train_dataset, 
-        batch_size=args.train_batch_size, 
-        shuffle=True, 
+        train_dataset,
+        batch_size=args.train_batch_size,
+        shuffle=True,
         collate_fn=lambda examples: collate_fn(examples, args.with_prior_preservation),
         num_workers=args.dataloader_num_workers,
     )
@@ -687,8 +730,9 @@ def main(args):
     )
 
     if args.train_text_encoder or args.modifier_token is not None:
-        unet, text_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-            unet, text_encoder, optimizer, train_dataloader, lr_scheduler
+        unet, text_encoder, optimizer, train_dataloader, lr_scheduler, vision_encoder, logit_scale, visual_projection, text_projection = accelerator.prepare(
+            unet, text_encoder, optimizer, train_dataloader, lr_scheduler,
+            vision_encoder, logit_scale, visual_projection, text_projection
         )
     else:
         unet, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
@@ -722,59 +766,82 @@ def main(args):
     progress_bar.set_description("Steps")
     global_step = 0
 
+
     for epoch in range(args.num_train_epochs):
-        unet.train()
         if args.train_text_encoder or args.modifier_token is not None:
+            unet.train()
             text_encoder.train()
+            vision_encoder.train()
+            visual_projection.train()
+            text_projection.train()
+            # logit_scale.train()
+
         for step, batch in enumerate(train_dataloader):
             with accelerator.accumulate(unet):
-                # Convert images to latent space
-                latents = vae.encode(batch["pixel_values"].to(dtype=weight_dtype)).latent_dist.sample()
-                latents = latents * vae.config.scaling_factor
+                text_embeds = text_encoder(batch["input_ids"])[1]
+                text_embeds = text_projection(text_embeds)
 
-                # Sample noise that we'll add to the latents
-                noise = torch.randn_like(latents)
-                bsz = latents.shape[0]
-                # Sample a random timestep for each image
-                timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device=latents.device)
-                timesteps = timesteps.long()
+                image_embeds = vision_encoder(batch["pixel_values"])[1]
+                image_embeds = visual_projection(image_embeds)
 
-                # Add noise to the latents according to the noise magnitude at each timestep
-                # (this is the forward diffusion process)
-                noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+                image_embeds = image_embeds / image_embeds.norm(p=2, dim=-1, keepdim=True)
+                text_embeds = text_embeds / text_embeds.norm(p=2, dim=-1, keepdim=True)
 
-                # Get the text embedding for conditioning
-                encoder_hidden_states = text_encoder(batch["input_ids"])[0]
+                # cosine similarity as logits
+                logit = logit_scale.exp()
+                logits_per_text = torch.matmul(text_embeds, image_embeds.t()) * logit_scale
+                logits_per_image = logits_per_text.t()
 
-                # Predict the noise residual
-                model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+                loss = clip_loss(logits_per_text)
 
-                # Get the target for loss depending on the prediction type
-                if noise_scheduler.config.prediction_type == "epsilon":
-                    target = noise
-                elif noise_scheduler.config.prediction_type == "v_prediction":
-                    target = noise_scheduler.get_velocity(latents, noise, timesteps)
-                else:
-                    raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")
 
-                if args.with_prior_preservation:
-                    # Chunk the noise and model_pred into two parts and compute the loss on each part separately.
-                    model_pred, model_pred_prior = torch.chunk(model_pred, 2, dim=0)
-                    target, target_prior = torch.chunk(target, 2, dim=0)
-                    mask = torch.chunk(batch["mask"], 2, dim=0)[0]
-                    # Compute instance loss
-                    loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
-                    loss = ((loss*mask).sum([1, 2, 3])/mask.sum([1, 2, 3])).mean()
+            #     # Convert images to latent space
+            #     latents = vae.encode(batch["pixel_values"].to(dtype=weight_dtype)).latent_dist.sample()
+            #     latents = latents * vae.config.scaling_factor
 
-                    # Compute prior loss
-                    prior_loss = F.mse_loss(model_pred_prior.float(), target_prior.float(), reduction="mean")
+            #     # Sample noise that we'll add to the latents
+            #     noise = torch.randn_like(latents)
+            #     bsz = latents.shape[0]
+            #     # Sample a random timestep for each image
+            #     timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device=latents.device)
+            #     timesteps = timesteps.long()
 
-                    # Add the prior loss to the instance loss.
-                    loss = loss + args.prior_loss_weight * prior_loss
-                else:
-                    mask = batch["mask"]
-                    loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
-                    loss = ((loss*mask).sum([1, 2, 3])/mask.sum([1, 2, 3])).mean()
+            #     # Add noise to the latents according to the noise magnitude at each timestep
+            #     # (this is the forward diffusion process)
+            #     noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+
+            #     # Get the text embedding for conditioning
+            #     encoder_hidden_states = text_encoder(batch["input_ids"])[0]
+
+            #     # Predict the noise residual
+            #     model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+
+            #     # Get the target for loss depending on the prediction type
+            #     if noise_scheduler.config.prediction_type == "epsilon":
+            #         target = noise
+            #     elif noise_scheduler.config.prediction_type == "v_prediction":
+            #         target = noise_scheduler.get_velocity(latents, noise, timesteps)
+            #     else:
+            #         raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")
+
+            #     if args.with_prior_preservation:
+            #         # Chunk the noise and model_pred into two parts and compute the loss on each part separately.
+            #         model_pred, model_pred_prior = torch.chunk(model_pred, 2, dim=0)
+            #         target, target_prior = torch.chunk(target, 2, dim=0)
+            #         mask = torch.chunk(batch["mask"], 2, dim=0)[0]
+            #         # Compute instance loss
+            #         loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
+            #         loss = ((loss*mask).sum([1, 2, 3])/mask.sum([1, 2, 3])).mean()
+
+            #         # Compute prior loss
+            #         prior_loss = F.mse_loss(model_pred_prior.float(), target_prior.float(), reduction="mean")
+
+            #         # Add the prior loss to the instance loss.
+            #         loss = loss + args.prior_loss_weight * prior_loss
+            #     else:
+            #         mask = batch["mask"]
+            #         loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
+            #         loss = ((loss*mask).sum([1, 2, 3])/mask.sum([1, 2, 3])).mean()
 
                 accelerator.backward(loss)
 
@@ -793,9 +860,14 @@ def main(args):
 
                 if accelerator.sync_gradients:
                     params_to_clip = (
-                        itertools.chain([x[1] for x in unet.named_parameters() if ('attn2' in x[0])], text_encoder.parameters())
+                        itertools.chain([x[1] for x in unet.named_parameters() if ('attn2' in x[0])], 
+                            text_encoder.parameters(),
+                            vision_encoder.parameters(),
+                            visual_projection.parameters(),
+                            text_projection.parameters(),
+                        )
                         if (args.train_text_encoder or args.modifier_token is not None)
-                        else itertools.chain([x[1] for x in unet.named_parameters() if ('attn2' in x[0])]) 
+                        else itertools.chain([x[1] for x in unet.named_parameters() if ('attn2' in x[0])])
                     )
                     accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
                 optimizer.step()
@@ -829,6 +901,122 @@ def main(args):
                 break
 
         accelerator.wait_for_everyone()
+
+
+
+
+
+
+
+
+
+    # for epoch in range(args.num_train_epochs):
+    #     unet.train()
+    #     if args.train_text_encoder or args.modifier_token is not None:
+    #         text_encoder.train()
+    #     for step, batch in enumerate(train_dataloader):
+    #         with accelerator.accumulate(unet):
+    #             # Convert images to latent space
+    #             latents = vae.encode(batch["pixel_values"].to(dtype=weight_dtype)).latent_dist.sample()
+    #             latents = latents * vae.config.scaling_factor
+
+    #             # Sample noise that we'll add to the latents
+    #             noise = torch.randn_like(latents)
+    #             bsz = latents.shape[0]
+    #             # Sample a random timestep for each image
+    #             timesteps = torch.randint(0, noise_scheduler.config.num_train_timesteps, (bsz,), device=latents.device)
+    #             timesteps = timesteps.long()
+
+    #             # Add noise to the latents according to the noise magnitude at each timestep
+    #             # (this is the forward diffusion process)
+    #             noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
+
+    #             # Get the text embedding for conditioning
+    #             encoder_hidden_states = text_encoder(batch["input_ids"])[0]
+
+    #             # Predict the noise residual
+    #             model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
+
+    #             # Get the target for loss depending on the prediction type
+    #             if noise_scheduler.config.prediction_type == "epsilon":
+    #                 target = noise
+    #             elif noise_scheduler.config.prediction_type == "v_prediction":
+    #                 target = noise_scheduler.get_velocity(latents, noise, timesteps)
+    #             else:
+    #                 raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")
+
+    #             if args.with_prior_preservation:
+    #                 # Chunk the noise and model_pred into two parts and compute the loss on each part separately.
+    #                 model_pred, model_pred_prior = torch.chunk(model_pred, 2, dim=0)
+    #                 target, target_prior = torch.chunk(target, 2, dim=0)
+    #                 mask = torch.chunk(batch["mask"], 2, dim=0)[0]
+    #                 # Compute instance loss
+    #                 loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
+    #                 loss = ((loss*mask).sum([1, 2, 3])/mask.sum([1, 2, 3])).mean()
+
+    #                 # Compute prior loss
+    #                 prior_loss = F.mse_loss(model_pred_prior.float(), target_prior.float(), reduction="mean")
+
+    #                 # Add the prior loss to the instance loss.
+    #                 loss = loss + args.prior_loss_weight * prior_loss
+    #             else:
+    #                 mask = batch["mask"]
+    #                 loss = F.mse_loss(model_pred.float(), target.float(), reduction="none")
+    #                 loss = ((loss*mask).sum([1, 2, 3])/mask.sum([1, 2, 3])).mean()
+
+    #             accelerator.backward(loss)
+
+    #             # Zero out the gradients for all token embeddings except the newly added
+    #             # embeddings for the concept, as we only want to optimize the concept embeddings
+    #             if args.modifier_token is not None:
+    #                 if accelerator.num_processes > 1:
+    #                     grads_text_encoder = text_encoder.module.get_input_embeddings().weight.grad
+    #                 else:
+    #                     grads_text_encoder = text_encoder.get_input_embeddings().weight.grad
+    #                 # Get the index for tokens that we want to zero the grads for
+    #                 index_grads_to_zero = torch.arange(len(tokenizer)) != modifier_token_id[0]
+    #                 for i in range(len(modifier_token_id[1:])):
+    #                     index_grads_to_zero = index_grads_to_zero & (torch.arange(len(tokenizer)) != modifier_token_id[i])
+    #                 grads_text_encoder.data[index_grads_to_zero, :] = grads_text_encoder.data[index_grads_to_zero, :].fill_(0)
+
+    #             if accelerator.sync_gradients:
+    #                 params_to_clip = (
+    #                     itertools.chain([x[1] for x in unet.named_parameters() if ('attn2' in x[0])], text_encoder.parameters())
+    #                     if (args.train_text_encoder or args.modifier_token is not None)
+    #                     else itertools.chain([x[1] for x in unet.named_parameters() if ('attn2' in x[0])])
+    #                 )
+    #                 accelerator.clip_grad_norm_(params_to_clip, args.max_grad_norm)
+    #             optimizer.step()
+    #             lr_scheduler.step()
+    #             optimizer.zero_grad()
+
+    #         # Checks if the accelerator has performed an optimization step behind the scenes
+    #         if accelerator.sync_gradients:
+    #             progress_bar.update(1)
+    #             global_step += 1
+
+    #             if global_step % args.save_steps == 0:
+    #                 if accelerator.is_main_process:
+    #                     pipeline = CustomDiffusionPipeline.from_pretrained(
+    #                         args.pretrained_model_name_or_path,
+    #                         unet=accelerator.unwrap_model(unet),
+    #                         text_encoder=accelerator.unwrap_model(text_encoder),
+    #                         tokenizer=tokenizer,
+    #                         revision=args.revision,
+    #                         modifier_token=args.modifier_token,
+    #                         modifier_token_id=modifier_token_id,
+    #                     )
+    #                     save_path = os.path.join(args.output_dir, f"delta-{global_step}.bin")
+    #                     pipeline.save_pretrained(save_path, freeze_model=args.freeze_model)
+
+    #         logs = {"loss": loss.detach().item(), "lr": lr_scheduler.get_last_lr()[0]}
+    #         progress_bar.set_postfix(**logs)
+    #         accelerator.log(logs, step=global_step)
+
+    #         if global_step >= args.max_train_steps:
+    #             break
+
+    #     accelerator.wait_for_everyone()
 
     if accelerator.is_main_process:
         # create pipeline
