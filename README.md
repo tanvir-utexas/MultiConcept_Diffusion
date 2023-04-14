@@ -149,7 +149,7 @@ Current result aren't so satisfactory since the token was trained with CLIP mode
 
 <div>
 <p align="center">
-<img src='logs/cat/<new1>-cat-playing-with-a-ball.png' align="center" width=800>
+<img src='assets/<new1>-cat-playing-with-a-ball.png' align="center" width=800>
 </p>
 </div>
 
