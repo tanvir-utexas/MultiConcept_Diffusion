@@ -18,7 +18,9 @@ Our method further allows you to use a combination of multiple concepts such as 
 [Nupur Kumari](https://nupurkmr9.github.io/), [Bingliang Zhang](https://zhangbingliang2019.github.io), [Richard Zhang](https://richzhang.github.io/), [Eli Shechtman](https://research.adobe.com/person/eli-shechtman/), [Jun-Yan Zhu](https://www.cs.cmu.edu/~junyanz/)<br>
 In CVPR 2023 <br>
 
-## Results
+
+
+<!-- ## Results
 
 All our results are based on fine-tuning [stable-diffusion-v1-4](https://huggingface.co/CompVis/stable-diffusion-v-1-4-original) model.
 We show results on various categories of images, including scene, pet, personal toy, and style, and with a varying number of training samples. 
@@ -73,6 +75,8 @@ For more generations and comparisons with concurrent methods, please refer to ou
 <img src='assets/chair_cat.jpg' align="center" width=800>
 </p>
 </div>
+ -->
+
 
 
 ## Method Details
@@ -141,7 +145,7 @@ python src/diffusers_sample.py --delta_ckpt logs/cat/delta.bin --ckpt "CompVis/s
 
 ```
 
-Current result aren't so satisfactory since the token was trained with CLIP models only that operates with much lower resolution. A better approach will be combining CLIP guidance with Stable Diffusion Fine-tuning. I will try that today.The Results are given below.
+Current result aren't so satisfactory since the token was trained with CLIP models only that operates with much lower resolution. A better approach will be combining CLIP guidance with Stable Diffusion Fine-tuning. I will try that today The Results are given below. Given Prompt is : V* cat playing with a ball
 
 <div>
 <p align="center">
@@ -151,64 +155,6 @@ Current result aren't so satisfactory since the token was trained with CLIP mode
 
 
 # From Original Source (Below)
-
-
-## Results
-
-All our results are based on fine-tuning [stable-diffusion-v1-4](https://huggingface.co/CompVis/stable-diffusion-v-1-4-original) model.
-We show results on various categories of images, including scene, pet, personal toy, and style, and with a varying number of training samples. 
-For more generations and comparisons with concurrent methods, please refer to our [webpage](https://www.cs.cmu.edu/~custom-diffusion/) and [gallery](https://www.cs.cmu.edu/~custom-diffusion/results.html).
-
-
-### Single-Concept Results
-
-<div>
-<p align="center">
-<img src='assets/tortoise_plushy.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/teddybear.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/art.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/art2.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/moongate.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/barn.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/cat.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/dog.jpg' align="center" width=800>
-</p>
-</div>
-
-
-
-### Multi-Concept Results
-
-
-<div>
-<p align="center">
-<img src='assets/woodenpot_cat.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/table_chair.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/woodenpot_flower.jpg' align="center" width=800>
-</p>
-<p align="center">
-<img src='assets/chair_cat.jpg' align="center" width=800>
-</p>
-</div>
-
 
 
 ### Single-Concept Fine-tuning
