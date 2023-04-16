@@ -7,7 +7,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
-
+import albumentations as A
 
 def preprocess(image, scale, resample):
     image = image.resize((scale, scale), resample=resample)
@@ -19,23 +19,29 @@ def preprocess(image, scale, resample):
 def collate_fn(examples, with_prior_preservation):
     input_ids = [example["instance_prompt_ids"] for example in examples]
     pixel_values = [example["instance_images"] for example in examples]
+    pixel_values_clip = [example["instance_images_clip"] for example in examples]
+
     mask = [example["mask"] for example in examples]
     # Concat class and instance examples for prior preservation.
     # We do this to avoid doing two forward passes.
     if with_prior_preservation:
         input_ids += [example["class_prompt_ids"] for example in examples]
         pixel_values += [example["class_images"] for example in examples]
+        pixel_values_clip += [example["class_images_clip"] for example in examples]
         mask += [example["class_mask"] for example in examples]
 
     input_ids = torch.cat(input_ids, dim=0)
     pixel_values = torch.stack(pixel_values)
+    pixel_values_clip = torch.stack(pixel_values_clip)
     mask = torch.stack(mask)
     pixel_values = pixel_values.to(memory_format=torch.contiguous_format).float()
+    pixel_values_clip = pixel_values_clip.to(memory_format=torch.contiguous_format).float()
     mask = mask.to(memory_format=torch.contiguous_format).float()
 
     batch = {
         "input_ids": input_ids,
         "pixel_values": pixel_values,
+        "pixel_values_clip": pixel_values_clip,
         "mask": mask.unsqueeze(1)
     }
     return batch
@@ -58,7 +64,7 @@ class PromptDataset(Dataset):
         return example
 
 
-class CustomDiffusionDataset(Dataset):
+class CustomDiffusionDatasetwithCLIP(Dataset):
     """
     A dataset to prepare the instance and class images with the prompts for fine-tuning the model.
     It pre-processes the images and the tokenizes prompts.
@@ -79,6 +85,15 @@ class CustomDiffusionDataset(Dataset):
         self.tokenizer = tokenizer
         self.interpolation = PIL.Image.BILINEAR
 
+        self.random_trans = A.Compose([
+            A.Resize(height=224, width=224),
+            A.HorizontalFlip(p=0.5),
+            A.Rotate(limit=20),
+            A.Blur(p=0.3),
+            A.ElasticTransform(p=0.3)
+        ])
+        
+        self.with_CLIP_image = True
         self.instance_images_path = []
         self.class_images_path = []
         self.with_prior_preservation = with_prior_preservation
@@ -116,6 +131,15 @@ class CustomDiffusionDataset(Dataset):
             ]
         )
 
+    def get_tensor_clip(self, normalize=True, toTensor=True):
+        transform_list = []
+        if toTensor:
+            transform_list += [transforms.ToTensor()]
+        if normalize:
+            transform_list += [transforms.Normalize((0.48145466, 0.4578275, 0.40821073),
+                                                                (0.26862954, 0.26130258, 0.27577711))]
+        return transforms.Compose(transform_list)
+
     def __len__(self):
         return self._length
 
@@ -123,6 +147,13 @@ class CustomDiffusionDataset(Dataset):
         example = {}
         instance_image, instance_prompt = self.instance_images_path[index % self.num_instance_images]
         instance_image = Image.open(instance_image)
+        
+        if self.with_CLIP_image:
+            clip_img = np.array(instance_image)
+            ref_image_tensor = self.random_trans(image=clip_img)
+            ref_image_tensor = Image.fromarray(ref_image_tensor["image"])
+            example["instance_images_clip"] = self.get_tensor_clip()(ref_image_tensor)
+
         if not instance_image.mode == "RGB":
             instance_image = instance_image.convert("RGB")
         instance_image = self.flip(instance_image)
@@ -178,6 +209,13 @@ class CustomDiffusionDataset(Dataset):
             class_image = Image.open(class_image)
             if not class_image.mode == "RGB":
                 class_image = class_image.convert("RGB")
+            
+            if self.with_CLIP_image:
+                clip_img = np.array(class_image)
+                ref_image_tensor = self.random_trans(image=clip_img)
+                ref_image_tensor = Image.fromarray(ref_image_tensor["image"])
+                example["class_images_clip"] = self.get_tensor_clip()(ref_image_tensor)            
+            
             example["class_images"] = self.image_transforms(class_image)
             example["class_mask"] = torch.ones_like(example["mask"])
             example["class_prompt_ids"] = self.tokenizer(
@@ -187,5 +225,6 @@ class CustomDiffusionDataset(Dataset):
                 max_length=self.tokenizer.model_max_length,
                 return_tensors="pt",
             ).input_ids
+    
 
         return example
