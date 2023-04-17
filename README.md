@@ -153,6 +153,26 @@ Current result aren't so satisfactory since the token was trained with CLIP mode
 </p>
 </div>
 
+## Reproduce Single-Concept Fine-tuning with CLIP with Stable Diffusion (Partially Trainable) Guided Soft-Prompts
+
+```
+
+## run training (30 GB on 2 GPUs)
+bash scripts/diffusers_clip_sd.sh 
+
+## sample
+python src/diffusers_sample.py --delta_ckpt logs/clip_sd/cat_1GPU/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat in times square"
+
+```
+
+ Given Prompt is : V* cat in swimming pool
+
+<div>
+<p align="center">
+<img src='assets/<new1>-cat-in-swimming-pool.png' align="center" width=800>
+</p>
+</div>
+
 
 # From Original Source (Below)
 
