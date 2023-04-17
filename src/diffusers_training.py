@@ -428,7 +428,7 @@ def main(args):
                 class_images_dir.mkdir(parents=True, exist_ok=True)
             if args.real_prior:
                 if accelerator.is_main_process:
-                    if not Path(os.path.join(class_images_dir, 'images')).exists() or len(list(Path(os.path.join(class_images_dir, 'images')).iterdir())) < args.num_class_images:
+                    if not Path(os.path.join(class_images_dir, concept['class_prompt'])).exists() or len(list(Path(os.path.join(class_images_dir, concept['class_prompt'])).iterdir())) < args.num_class_images:
                         retrieve.retrieve(concept['class_prompt'], class_images_dir, args.num_class_images)
                 concept['class_prompt'] = os.path.join(class_images_dir, 'caption.txt')
                 concept['class_data_dir'] = os.path.join(class_images_dir, 'images.txt')
@@ -618,7 +618,7 @@ def main(args):
 
         # Initialise the newly added placeholder token with the embeddings of the initializer token
         token_embeds = text_encoder.get_input_embeddings().weight.data
-        for (x,y) in zip(modifier_token_id,initializer_token_id):
+        for (x,y) in zip(modifier_token_id, initializer_token_id):
             token_embeds[x] = token_embeds[y]
 
         # Freeze all parameters except for the token embeddings in text encoder

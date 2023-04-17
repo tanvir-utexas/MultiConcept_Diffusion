@@ -174,6 +174,35 @@ python src/diffusers_sample.py --delta_ckpt logs/clip_sd/cat_1GPU/delta.bin --ck
 </div>
 
 
+## Reproduce Multi-Concept Fine-tuning with CLIP with Stable Diffusion (Partially Trainable) Guided Soft-Prompts
+
+```
+
+## run training (30 GB on 2 GPUs)
+bash scripts/diffusers_multi_concept_clip_sd.sh 
+
+## sample
+python src/diffusers_sample.py --delta_ckpt ./logs/CustomData/cat_and_dog_clip_sd/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat in times square"
+
+```
+
+ Given Prompt is : V* cat in swimming pool
+
+<div>
+<p align="center">
+<img src='assets/<new1>-cat-in-times-square.png' align="center" width=800>
+</p>
+</div>
+
+ Given Prompt is : V1* cat and V2* dog in times square
+
+<div>
+<p align="center">
+<img src='assets/<new1>-cat-and-<new2>-dog-in-times-square.png' align="center" width=800>
+</p>
+</div>
+
+
 # From Original Source (Below)
 
 

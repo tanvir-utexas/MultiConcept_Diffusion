@@ -3,3 +3,5 @@ data/**
 real_reg/**
 weights/**
 __pycache__
+CVDataset
+*.zip
