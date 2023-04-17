@@ -186,13 +186,22 @@ python src/diffusers_sample.py --delta_ckpt ./logs/CustomData/cat_and_dog_clip_s
 
 ```
 
- Given Prompt is : V* cat in swimming pool
+ Given Prompt is : V* cat in times square
 
 <div>
 <p align="center">
 <img src='assets/<new1>-cat-in-times-square.png' align="center" width=800>
 </p>
 </div>
+
+ Given Prompt is : V* dog in times square
+
+<div>
+<p align="center">
+<img src='assets/<new2>-dog-in-times-square.png' align="center" width=800>
+</p>
+</div>
+
 
  Given Prompt is : V1* cat and V2* dog in times square
 
