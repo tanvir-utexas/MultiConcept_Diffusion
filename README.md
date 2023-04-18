@@ -145,6 +145,10 @@ python src/diffusers_sample.py --delta_ckpt logs/cat/delta.bin --ckpt "CompVis/s
 
 ```
 
+## Sample 10 Images
+python src/diffusers_sample.py --batch_size 10 --delta_ckpt logs/cat/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat playing with a ball"
+
+
 Current result aren't so satisfactory since the token was trained with CLIP models only that operates with much lower resolution. A better approach will be combining CLIP guidance with Stable Diffusion Fine-tuning. I will try that today The Results are given below. Given Prompt is : V* cat playing with a ball
 
 <div>

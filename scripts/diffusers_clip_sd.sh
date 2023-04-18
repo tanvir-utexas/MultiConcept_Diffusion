@@ -18,5 +18,5 @@ python src/diffusers_training_clip_sd.py \
           --scale_lr --hflip  \
           --modifier_token "<new1>"
 
-# python src/diffusers_sample.py --delta_ckpt logs/clip_sd/cat_1GPU/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat in times square"
+# python src/diffusers_sample.py --batch_size 10 --delta_ckpt logs/clip_sd/cat_1GPU/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat in times square"
 

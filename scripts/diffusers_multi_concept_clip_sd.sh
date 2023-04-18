@@ -1,9 +1,9 @@
 MODEL_NAME="CompVis/stable-diffusion-v1-4"
 
-CUDA_VISIBLE_DEVICES=0 accelerate launch src/diffusers_training_clip_sd.py \
+CUDA_VISIBLE_DEVICES=2 accelerate launch src/diffusers_training_clip_sd.py \
           --pretrained_model_name_or_path=$MODEL_NAME  \
-          --output_dir=./logs/CustomData/cat_and_dog_clip_sd  \
-          --concepts_list=./CustomData/concept_list.json \
+          --output_dir=./logs/CustomData/cat_and_dog_clip_sd_no_cmn_img  \
+          --concepts_list=./CustomData/concept_list_2.json \
           --with_prior_preservation --real_prior --prior_loss_weight=1.0 \
           --resolution=512  \
           --train_batch_size=2  \

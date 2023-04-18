@@ -5,3 +5,4 @@ weights/**
 __pycache__
 CVDataset
 *.zip
+pytorch-fid
