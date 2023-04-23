@@ -9,12 +9,12 @@
         "instance_prompt":     "photo of a <new2> dog",
         "class_prompt":         "dog",
         "instance_data_dir":    "./CustomData/dog",
-        "class_data_dir":       "./real_reg/samples_dog"
+        "class_data_dir":       "./real_reg_dog"
     },
     {
-        "instance_prompt":     "a <new1> cat and <new2> dog are sitting together in the field",
+        "instance_prompt":     "photo of a <new1> cat and a <new2> dog",
         "class_prompt":         "cat and dog",
         "instance_data_dir":    "./CustomData/cat_and_dog",
-        "class_data_dir":       "./real_reg/samples_cat_and_dog"
+        "class_data_dir":       "./real_reg_cat_and_dog"
     }
 ]
