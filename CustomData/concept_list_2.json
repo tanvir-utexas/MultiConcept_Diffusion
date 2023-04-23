@@ -1,0 +1,14 @@
+[
+    {
+        "instance_prompt":     "photo of a <new1> cat",
+        "class_prompt":         "cat",
+        "instance_data_dir":    "./CustomData/cat",
+        "class_data_dir":       "./real_reg/samples_cat"
+    },
+    {
+        "instance_prompt":     "photo of a <new2> dog",
+        "class_prompt":         "dog",
+        "instance_data_dir":    "./CustomData/dog",
+        "class_data_dir":       "./real_reg/samples_dog"
+    }
+]

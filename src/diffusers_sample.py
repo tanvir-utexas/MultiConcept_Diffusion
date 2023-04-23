@@ -21,7 +21,9 @@ def sample(ckpt, delta_ckpt, from_file, prompt, compress, batch_size, freeze_mod
     pipe.load_model(delta_ckpt, compress)
 
     outdir = os.path.dirname(delta_ckpt)
-    generator = torch.Generator(device='cuda').manual_seed(42)
+    # generator = torch.Generator(device='cuda').manual_seed(42)
+    random_int = torch.randint(100, size=(1,)).data.item()
+    generator = torch.Generator(device='cuda').manual_seed(random_int)
 
     all_images = []
     if prompt is not None:
