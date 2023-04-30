@@ -7,3 +7,4 @@ CVDataset
 *.zip
 pytorch-fid
 Inpaint-Anything/*
+hard-prompts-made-easy/*

@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "hard-prompt",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/tmahmud/diffusion/MultiConcept_Diffusion/hard-prompts-made-easy",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "/home/tmahmud/diffusion/MultiConcept_Diffusion/CustomData2/background/1.png"
+            ]
+        },
+        {
             "name": "diffuser_multi",
             "type": "python",
             "request": "launch",
@@ -36,8 +47,8 @@
                 "200",
                 "--scale_lr",
                 "--hflip",
-                "--modifier_token", 
-                "<new1>+<new2>"                
+                "--modifier_token",
+                "<new1>+<new2>"
             ]
         },
         {
