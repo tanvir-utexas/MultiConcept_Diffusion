@@ -6,5 +6,6 @@ __pycache__
 CVDataset
 *.zip
 pytorch-fid
-Inpaint-Anything/*
+Inpaint-Anything/pretrained_models/*
+Inpaint-Anything/data
 hard-prompts-made-easy/*
