@@ -1,0 +1,20 @@
+[
+    {
+        "instance_prompt":     "photo of a <X*> cat",
+        "class_prompt":         "cat",
+        "instance_data_dir":    "./CustomData2/cat_closeup",
+        "class_data_dir":       "./real_reg/samples_cat"
+    },
+    {
+        "instance_prompt":     "photo of a <Y#> dog",
+        "class_prompt":         "dog",
+        "instance_data_dir":    "./CustomData2/dog_closeup",
+        "class_data_dir":       "./real_reg_dog"
+    },
+    {
+        "instance_prompt":     "photo of a <X*> cat and a <Y#> dog",
+        "class_prompt":         "cat and dog",
+        "instance_data_dir":    "./CustomData2/cat_and_dog",
+        "class_data_dir":       "./real_reg_cat_and_dog"
+    }
+]
