@@ -1,4 +1,4 @@
-# Custom Diffusion
+**This repo is an extension of Custom Diffusion, follow this readme for installation setup and running one basic sample example. For replicating the experiments in report, follow Experiment.MD**
 
 ### [website](https://www.cs.cmu.edu/~custom-diffusion/)  | [paper](http://arxiv.org/abs/2212.04488) | [gradio demo](https://huggingface.co/spaces/nupurkmr9/custom-diffusion)
 
