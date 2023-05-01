@@ -1,0 +1,20 @@
+[
+    {
+        "instance_prompt":     "photo of a <X*> laptop",
+        "class_prompt":         "laptop",
+        "instance_data_dir":    "./CustomData3/laptop",
+        "class_data_dir":       "./real_reg_laptop"
+    },
+    {
+        "instance_prompt":     "photo of a <Y#> coffee",
+        "class_prompt":         "coffee",
+        "instance_data_dir":    "./CustomData3/coffee",
+        "class_data_dir":       "./real_reg_coffee"
+    },
+    {
+        "instance_prompt":     "photo of a <X*> laptop and a <Y#> coffee",
+        "class_prompt":         "laptop and coffee",
+        "instance_data_dir":    "./CustomData3/laptopAndCoffee",
+        "class_data_dir":       "./real_reg_laptop_and_coffee"
+    }
+]

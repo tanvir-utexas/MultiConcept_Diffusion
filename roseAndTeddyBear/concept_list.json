@@ -1,0 +1,20 @@
+[
+    {
+        "instance_prompt":     "photo of a <X*> teddy bear",
+        "class_prompt":         "teddy bear",
+        "instance_data_dir":    "./roseAndTeddyBear/teddybear",
+        "class_data_dir":       "./real_reg_teddybear/"
+    },
+    {
+        "instance_prompt":     "photo of <Y#> roses",
+        "class_prompt":         "roses",
+        "instance_data_dir":    "./roseAndTeddyBear/roses",
+        "class_data_dir":       "./real_reg_roses/"
+    },
+    {
+        "instance_prompt":     "photo of a <X*> teddy bear and <Y#> roses",
+        "class_prompt":         "teddy bear and roses",
+        "instance_data_dir":    "./roseAndTeddyBear/roseAndTeddyBear/",
+        "class_data_dir":       "./real_reg_teddybear_and_roses/"
+    }
+]
