@@ -78,21 +78,6 @@ For more generations and comparisons with concurrent methods, please refer to ou
  -->
 
 
-
-## Method Details
-
-
-<div>
-<p align="center">
-<img src='assets/methodology.jpg' align="center" width=900>
-</p>
-</div>
-
-
-Given the few user-provided images of a concept, our method augments a pre-trained text-to-image diffusion model, enabling new generations of the concept in unseen contexts. 
-We fine-tune a small subset of model weights, namely the key and value mapping from text to latent features in the cross-attention layers of the diffusion model. 
-Our method also uses a small set of regularization images (200) to prevent overfitting. For personal categories, we add a new modifier token V* in front of the category name, e.g., V* dog. For multiple concepts, we jointly train on the dataset for the two concepts. Our method also enables the merging of two fine-tuned models using optimization. For more details, please refer to our [paper](https://arxiv.org/abs/2212.04488).  
-
 ## Getting Started
 
 ```
@@ -186,7 +171,7 @@ python src/diffusers_sample.py --delta_ckpt logs/clip_sd/cat_1GPU/delta.bin --ck
 bash scripts/diffusers_multi_concept_clip_sd.sh 
 
 ## sample
-python src/diffusers_sample.py --delta_ckpt ./logs/CustomData/cat_and_dog_clip_sd/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat in times square"
+python src/diffusers_sample.py --delta_ckpt ./logs/CustomData/cat_and_dog_clip_sd/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat in times square --batch_size 4"
 
 ```
  Given Prompt is : a <X*> cat and <Y*> dog in times square
