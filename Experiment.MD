@@ -1,3 +1,4 @@
+Follow first Readme.md for installation steps. 
 These are the list of experiments we ran. 
 ```bash
 ##For changing data location in any training script, change the instance_data_dir accordingly.

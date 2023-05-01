@@ -144,7 +144,7 @@ bash scripts/diffusers_clip.sh
 python src/diffusers_sample.py --delta_ckpt logs/cat/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat playing with a ball"
 
 ```
-
+**This is an example, after this follor Experiment.MD to replicate the experiments.**
 ## Sample 10 Images
 python src/diffusers_sample.py --batch_size 10 --delta_ckpt logs/cat/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "<new1> cat playing with a ball"
 
