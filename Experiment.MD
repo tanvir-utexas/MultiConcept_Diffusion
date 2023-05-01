@@ -34,3 +34,6 @@ python run_evaluation-hp.py ../data/dog generated_images/dog A photo of v* dog
 # For reproducing Fig 9 results run
 python run_evaluation-hp.py ../data/teddybear/ generated_images/teddybear a photo of v* teddy bear
 ```
+Some multi-object custom dataset created initially though not used:
+https://drive.google.com/drive/folders/1RSIPwkExNX9l3yewTDQMQANXtS42lpFb?usp=sharing
+https://drive.google.com/drive/folders/14YRahMAQPTGBXI-RVBSieK_NxxV8O-QP?usp=sharing
