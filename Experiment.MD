@@ -27,4 +27,5 @@ sh dreanbooth_lora.sh
 ##For running inference with  our framework band LoRA, run:
 python src/diffusers_sample_lora.py --delta_ckpt ./logs/CustomData/cat_sd/delta.bin --ckpt "CompVis/stable-diffusion-v1-4" --prompt "a <new1> cat in swimming pool"
 ##Please check the flags, if you want to change anything in the run. 
+##For evaluating hard prompts, pls follow run_evaluation-hp.py
 ```
